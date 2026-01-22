@@ -45,7 +45,7 @@ cleanup() {
     sudo rm -f "${RESOLVER_FILE}" >/dev/null 2>&1 || true
   fi
 
-  # Reset DNS to DHCP for both services
+  # Restore per-service DNS to DHCP (restorative cleanup)
   if declare -p WORK_VPN_NETWORK_SERVICES >/dev/null 2>&1; then
     for svc in "${WORK_VPN_NETWORK_SERVICES[@]}"; do
       sudo networksetup -setdnsservers "$svc" empty >/dev/null 2>&1 || true

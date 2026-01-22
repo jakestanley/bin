@@ -1,8 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-PREFIX="/usr/local/bin"
+PREFIX="${PREFIX:-/usr/local/bin}"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd -P)"
+TMP_INSTALL_LIST=""
+
+cleanup() {
+  if [[ -n "${TMP_INSTALL_LIST}" ]] && [[ -f "${TMP_INSTALL_LIST}" ]]; then
+    rm -f "${TMP_INSTALL_LIST}" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT INT TERM HUP
 
 die() {
   echo "error: $*" >&2
@@ -55,17 +64,39 @@ uninstall() {
 }
 
 install_all() {
-  [[ -d "${REPO_ROOT}/bin" ]] || die "missing ${REPO_ROOT}/bin"
+  TMP_INSTALL_LIST="$(mktemp -t bin-install.XXXXXX)"
 
   if [[ ! -d "${PREFIX}" ]]; then
     run mkdir -p "${PREFIX}"
   fi
 
   while IFS= read -r -d '' src; do
-    local src_abs base cmd dest
+    local src_abs base cmd
     src_abs="$(abspath "${src}")"
     base="$(basename "${src_abs}")"
     cmd="${base%.sh}"
+    printf '%s\t%s\n' "${cmd}" "${src_abs}" >>"${TMP_INSTALL_LIST}"
+  done < <(
+    find "${REPO_ROOT}" \
+      -mindepth 2 \
+      -type f \
+      -perm -111 \
+      ! -name '.*' \
+      ! -path '*/.*' \
+      -print0
+  )
+
+  if [[ ! -s "${TMP_INSTALL_LIST}" ]]; then
+    echo "no executables found under ${REPO_ROOT}/*/"
+    return 0
+  fi
+
+  local dup
+  dup="$(sort -t$'\t' -k1,1 "${TMP_INSTALL_LIST}" | awk -F $'\t' 'prev==$1 {print $1; exit 0} {prev=$1} END{exit 0}')"
+  [[ -z "${dup}" ]] || die "duplicate command name detected: ${dup}"
+
+  while IFS=$'\t' read -r cmd src_abs; do
+    local dest
     dest="${PREFIX}/${cmd}"
 
     if [[ -e "${dest}" && ! -L "${dest}" ]]; then
@@ -85,14 +116,10 @@ install_all() {
       run ln -s "${src_abs}" "${dest}"
       echo "installed: ${dest} -> ${src_abs}"
     fi
-  done < <(
-    find "${REPO_ROOT}/bin" \
-      -type f \
-      -perm -111 \
-      ! -name '.*' \
-      ! -path '*/.*' \
-      -print0
-  )
+  done < <(sort -t$'\t' -k1,1 "${TMP_INSTALL_LIST}")
+
+  rm -f "${TMP_INSTALL_LIST}"
+  TMP_INSTALL_LIST=""
 }
 
 case "${1:-}" in

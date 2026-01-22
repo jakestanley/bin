@@ -10,7 +10,7 @@ If a script does not follow these rules, it does not belong here.
 ## Repository Structure
 
 - All executable scripts MUST live in top-level subdirectories of the repository root (for example ./work-vpn/).
-- Scripts may be grouped by purpose (for example `bin/work-vpn/`)
+- Scripts may be grouped by purpose (for example `work-vpn/`)
 - The repository root MUST contain only:
   - `install.sh`
   - `AGENTS.md`
@@ -68,7 +68,9 @@ Scripts MUST leave the system in the same state they found it.
 
 In particular:
 
-- Global DNS modification is forbidden
+- Global DNS modification is forbidden (do not set system-wide DNS to VPN or corporate resolvers)
+- Cleanup MAY reset per-service DNS back to DHCP using `networksetup -setdnsservers <service> empty` (this is considered restorative cleanup, not configuration)
+- Scoped DNS via `/etc/resolver/<domain>` is preferred for corporate domains
 - Persistent SystemConfiguration changes are forbidden unless unavoidable
 - Temporary system changes MUST:
   - Be scoped
@@ -105,7 +107,7 @@ If these guarantees cannot be met, the script is not acceptable.
 
 Before adding a new script, ensure:
 
-1. The script lives under `./bin/`
+1. The script lives under `./<script-name>/`
 2. Configuration is externalised correctly
 3. All system changes are cleaned up
 4. The script can be installed automatically by `install.sh`

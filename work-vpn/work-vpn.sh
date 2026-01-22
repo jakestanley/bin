@@ -97,8 +97,6 @@ sudo mkdir -p /etc/resolver
 # Start VPN (DNS-safe)
 sudo openconnect-sso \
   --server "${WORK_VPN_ENDPOINT_URL}" \
+  -- \
   --no-dns \
-  --script /bin/true &
-OC_PID="$!"
-
-wait "${OC_PID}"
+  --script /usr/bin/true

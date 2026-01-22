@@ -1,1 +1,8 @@
 .env
+*.zip
+
+# Ignore all resolver configs by default
+work-vpn/config/macos/resolver/*
+
+# …but keep example templates
+!work-vpn/config/macos/resolver/*.example

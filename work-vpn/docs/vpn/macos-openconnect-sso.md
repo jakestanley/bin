@@ -1,0 +1,1 @@
+sudo openconnect-sso https://<WORK_VPN_ENDPOINT_URL>/ -- --script /opt/homebrew/etc/vpnc/vpnc-script-no-dns

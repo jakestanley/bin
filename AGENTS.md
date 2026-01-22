@@ -126,3 +126,46 @@ This repository is for small, sharp tools that are:
 - Easy to understand months later
 
 Cleverness is a liability.
+
+## macOS VPN (openconnect-sso) DNS policy
+
+Goal: Use openconnect-sso on macOS without allowing vpnc-script to modify global DNS/search domains.
+
+Rules:
+- Do not use `networksetup -setdnsservers` or any global DNS mutation.
+- Use `/etc/resolver/<domain>` for split-DNS (scoped DNS) instead.
+- When connecting, pass OpenConnect options after `--` so they reach `openconnect`.
+
+Implementation:
+- Install resolver files from `config/macos/resolver/` into `/etc/resolver/` via `scripts/macos/install-resolvers.sh`.
+- Use a vpnc-script wrapper that strips all DNS-related env vars before delegating to the real vpnc-script.
+  - Wrapper source: `scripts/vpn/vpnc-script-no-dns`
+  - Installed path: `/opt/homebrew/etc/vpnc/vpnc-script-no-dns` (executable)
+
+Connect command:
+- `sudo openconnect-sso https://<WORK_VPN_ENDPOINT_URL>/ -- --script /opt/homebrew/etc/vpnc/vpnc-script-no-dns`
+  - note that `WORK_VPN_ENDPOINT_URL` can have a path
+
+Verification:
+- `scutil --dns` must show scoped resolvers for corpname2.co.uk (and corpname1.co.uk if present)
+- global resolver must remain unchanged.
+
+### Resolver configuration (local-only, not committed)
+
+Corporate DNS resolver IPs are considered sensitive and MUST NOT be committed.
+
+Policy:
+- Resolver files under /etc/resolver/<domain> are REQUIRED for split DNS.
+- Actual resolver files MUST be created locally and ignored by git.
+- The repository may contain examples or templates ONLY.
+
+Allowed in repo:
+- docs describing required domains
+- *.example files with placeholder IPs
+
+Forbidden:
+- committing real corporate DNS IPs
+- committing /etc/resolver contents verbatim
+
+Only *.example resolver files may be committed.
+All real resolver files are local-only and gitignored.

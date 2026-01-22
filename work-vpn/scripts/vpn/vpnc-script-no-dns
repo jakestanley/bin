@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REAL="/opt/homebrew/etc/vpnc/vpnc-script"
+
+# Strip DNS inputs so vpnc-script can't write DNS/search domains
+unset INTERNAL_IP4_DNS INTERNAL_IP4_DNS_SEARCH INTERNAL_IP4_DNS_DOMAIN
+unset INTERNAL_IP6_DNS INTERNAL_IP6_DNS_SEARCH INTERNAL_IP6_DNS_DOMAIN
+unset CISCO_DEF_DOMAIN CISCO_SPLIT_DNS
+
+# Strip CSTP-provided DNS and split-DNS (both underscore + hyphen variants)
+unset X_CSTP_DNS X_CSTP_Split_DNS X_CSTP_Tunnel_All_DNS
+
+exec env \
+  -u X-CSTP-DNS \
+  -u X-CSTP-Split-DNS \
+  -u X-CSTP-Tunnel-All-DNS \
+  "$REAL" "$@"

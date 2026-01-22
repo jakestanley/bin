@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+if [[ "${SCRIPT_PATH}" != /* ]]; then
+  SCRIPT_PATH="$(pwd -P)/${SCRIPT_PATH}"
+fi
+while [[ -L "${SCRIPT_PATH}" ]]; do
+  LINK_TARGET="$(readlink "${SCRIPT_PATH}")"
+  if [[ "${LINK_TARGET}" = /* ]]; then
+    SCRIPT_PATH="${LINK_TARGET}"
+  else
+    SCRIPT_PATH="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd -P)/${LINK_TARGET}"
+  fi
+done
+SCRIPT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")" && pwd -P)"
 ENV_FILE="${SCRIPT_DIR}/.env"
 
 die() {

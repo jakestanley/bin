@@ -1,5 +1,7 @@
 .env
 *.zip
+ssm-get/.venv/
+ssm-get/ssm-get.yaml
 
 # Ignore all resolver configs by default
 work-vpn/config/macos/resolver/*

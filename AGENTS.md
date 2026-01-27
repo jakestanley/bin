@@ -10,6 +10,7 @@ If a script does not follow these rules, it does not belong here.
 ## Repository Structure
 
 - All executable scripts MUST live in top-level subdirectories of the repository root (for example ./work-vpn/).
+- Script executables MUST be named to match their directory: `./<script-name>/<script-name>`.
 - Scripts may be grouped by purpose (for example `work-vpn/`)
 - The repository root MUST contain only these files (repo metadata + installers):
   - `install.sh` (macOS installer)

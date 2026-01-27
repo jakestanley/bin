@@ -15,6 +15,11 @@
 - Create `homelab-sync/.env` by copying `homelab-sync/.env.example` and filling in your values.
 - Run `homelab-sync` after installing (or run `homelab-sync/homelab-sync.sh` directly).
 
+## ssm-get
+
+- Create `ssm-get/ssm-get.yaml` by copying `ssm-get/ssm-get.yaml.example` and filling in your values.
+- Run `ssm-get SERVICE_NAME [--env dev|sit|preprod|prod] [--with-decryption]`.
+
 ## Windows install
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1`

@@ -1,0 +1,12 @@
+  aws:
+    profile_groups:
+      services:
+        nonprod: es-nonprod
+        prod: es-prod
+      apis:
+        nonprod: api-nonprod
+        prod: api-prod
+
+  services:
+    my-service:
+      group: services

@@ -154,15 +154,24 @@ def main() -> int:
             auth_error(profile, exc)
 
         env_data: dict[str, str] = {}
-        for prefix in prefixes:
-            base_path = f"{prefix}{env}"
-            try:
-                params = fetch_parameters(client, base_path, args.with_decryption)
-            except (NoCredentialsError, BotoCoreError, ClientError) as exc:
-                auth_error(profile, exc)
+        env_candidates = [env]
+        if env == "preprod":
+            env_candidates.append("pre")
 
-            if params:
-                env_data = build_env_data(params, base_path, args.with_decryption)
+        found = False
+        for prefix in prefixes:
+            for env_candidate in env_candidates:
+                base_path = f"{prefix}{env_candidate}"
+                try:
+                    params = fetch_parameters(client, base_path, args.with_decryption)
+                except (NoCredentialsError, BotoCoreError, ClientError) as exc:
+                    auth_error(profile, exc)
+
+                if params:
+                    env_data = build_env_data(params, base_path, args.with_decryption)
+                    found = True
+                    break
+            if found:
                 break
 
         data[env] = env_data

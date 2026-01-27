@@ -4,8 +4,8 @@
         nonprod: es-nonprod
         prod: es-prod
       apis:
-        nonprod: api-nonprod
-        prod: api-prod
+        nonprod: apis-nonprod
+        prod: apis-prod
 
   services:
     my-service:

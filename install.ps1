@@ -17,10 +17,6 @@ function Throw-Error {
   throw "[install.ps1] ERROR: $Message"
 }
 
-function Get-RepoRoot {
-  return $PSScriptRoot
-}
-
 function Test-WritableDirectory {
   param([Parameter(Mandatory)][string]$Path)
   try {
@@ -61,6 +57,7 @@ function Get-WindowsCommandScripts {
   foreach ($dir in (Get-ChildItem -LiteralPath $RepoRoot -Directory -ErrorAction Stop)) {
     foreach ($f in (Get-ChildItem -LiteralPath $dir.FullName -File -Filter "*.ps1" -ErrorAction Stop)) {
       if ($f.Name.StartsWith(".")) { continue }
+      if ($f.Name -ieq "install.ps1") { continue }
       $scripts += $f
     }
   }

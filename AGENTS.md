@@ -11,23 +11,29 @@ If a script does not follow these rules, it does not belong here.
 
 - All executable scripts MUST live in top-level subdirectories of the repository root (for example ./work-vpn/).
 - Scripts may be grouped by purpose (for example `work-vpn/`)
-- The repository root MUST contain only:
-  - `install.sh`
+- The repository root MUST contain only these files (repo metadata + installers):
+  - `install.sh` (macOS installer)
+  - `install.ps1` (Windows installer)
   - `AGENTS.md`
   - `README.md`
+  - `.gitignore`
 
-No executable scripts may live in the repository root.
+Top-level directories are allowed, and should generally be one directory per tool (for example `./work-vpn/`, `./homelab-sync/`).
+
+No other executable scripts may live in the repository root (installers are the only exception).
 
 ---
 
 ## Installation Model
 
-- Scripts are installed exclusively via symlinks
-- `install.sh` is the single authoritative installer
-- Installed commands live in `/usr/local/bin`
+- macOS scripts are installed exclusively via symlinks
+- Windows ports are installed via small `*.cmd` wrappers that invoke the corresponding `*.ps1`
+- `install.sh` and `install.ps1` are the authoritative installers for their platforms
+- Installed macOS commands live in `/usr/local/bin`
 - Command names are derived from filenames
   - `foo.sh` becomes `foo`
 - `install.sh --uninstall` MUST remove only symlinks that point back into this repository
+- `install.ps1 -Uninstall` MUST remove only wrappers that point back into this repository
 
 Scripts MUST NOT self-install.
 

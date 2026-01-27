@@ -80,7 +80,7 @@ function Invoke-Run {
   }
 }
 
-function Git {
+function Invoke-Git {
   param(
     [Parameter(Mandatory)][string]$RepoDir,
     [Parameter(Mandatory)][string[]]$Args
@@ -96,7 +96,6 @@ function Git-Output {
     [Parameter(Mandatory)][string]$RepoDir,
     [Parameter(Mandatory)][string[]]$Args
   )
-  if ($DryRun) { return "" }
   $out = & git -C $RepoDir @Args 2>$null
   if ($LASTEXITCODE -ne 0) { return $null }
   return ($out | Out-String).TrimEnd()
@@ -123,27 +122,24 @@ function Ensure-RepoReady {
   if (-not $inside) { Throw-Error "$RepoName is not a git repository: $RepoDir" }
 
   $remoteUrl = Git-Output -RepoDir $RepoDir -Args @("remote", "get-url", $Remote)
-  if (-not $remoteUrl) { Throw-Error "$RepoName: missing git remote '$Remote'" }
+  if (-not $remoteUrl) { Throw-Error "${RepoName}: missing git remote '$Remote'" }
 
   $headRef = Git-Output -RepoDir $RepoDir -Args @("symbolic-ref", "-q", "HEAD")
-  if (-not $headRef) { Throw-Error "$RepoName: detached HEAD (check out a branch first)" }
-
-  $upstream = Git-Output -RepoDir $RepoDir -Args @("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
-  if (-not $upstream) { Throw-Error "$RepoName: no upstream configured for current branch" }
+  if (-not $headRef) { Throw-Error "${RepoName}: detached HEAD (check out a branch first)" }
 
   if ((GitPathExists -RepoDir $RepoDir -GitPath "rebase-apply") -or
       (GitPathExists -RepoDir $RepoDir -GitPath "rebase-merge") -or
       (GitPathExists -RepoDir $RepoDir -GitPath "MERGE_HEAD") -or
       (GitPathExists -RepoDir $RepoDir -GitPath "CHERRY_PICK_HEAD") -or
       (GitPathExists -RepoDir $RepoDir -GitPath "REVERT_HEAD")) {
-    Throw-Error "$RepoName: repository has an in-progress operation (rebase/merge/cherry-pick/revert)"
+    Throw-Error "${RepoName}: repository has an in-progress operation (rebase/merge/cherry-pick/revert)"
   }
 
   $dirty = Git-Output -RepoDir $RepoDir -Args @("status", "--porcelain")
   if ($dirty -and $dirty.Trim().Length -gt 0) {
-    Write-Log "$RepoName: uncommitted changes detected:"
+    Write-Log "${RepoName}: uncommitted changes detected:"
     Write-Host $dirty
-    Throw-Error "$RepoName: commit/stash/clean changes and retry"
+    Throw-Error "${RepoName}: commit/stash/clean changes and retry"
   }
 }
 
@@ -154,14 +150,30 @@ function Sync-Repo {
     [Parameter(Mandatory)][string]$Remote
   )
 
-  Write-Log "$RepoName: fetch"
-  Git -RepoDir $RepoDir -Args @("fetch", $Remote, "--prune")
+  $branch = Git-Output -RepoDir $RepoDir -Args @("rev-parse", "--abbrev-ref", "HEAD")
+  if (-not $branch -or $branch -eq "HEAD") { Throw-Error "${RepoName}: detached HEAD (check out a branch first)" }
+  $upstream = Git-Output -RepoDir $RepoDir -Args @("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+  $upstreamRemote = $null
+  if ($upstream -and $upstream.Contains("/")) {
+    $upstreamRemote = $upstream.Split("/")[0]
+  }
 
-  Write-Log "$RepoName: pull (--ff-only)"
-  Git -RepoDir $RepoDir -Args @("pull", "--ff-only")
+  Write-Log "${RepoName}: fetch"
+  Invoke-Git -RepoDir $RepoDir -Args @("fetch", $Remote, "--prune")
 
-  Write-Log "$RepoName: push"
-  Git -RepoDir $RepoDir -Args @("push", $Remote)
+  Write-Log "${RepoName}: pull (--ff-only)"
+  if ($upstream -and $upstreamRemote -eq $Remote) {
+    Invoke-Git -RepoDir $RepoDir -Args @("pull", "--ff-only")
+  } else {
+    Invoke-Git -RepoDir $RepoDir -Args @("pull", "--ff-only", $Remote, $branch)
+  }
+
+  Write-Log "${RepoName}: push"
+  if ($upstream -and $upstreamRemote -eq $Remote) {
+    Invoke-Git -RepoDir $RepoDir -Args @("push")
+  } else {
+    Invoke-Git -RepoDir $RepoDir -Args @("push", $Remote, "HEAD:$branch")
+  }
 }
 
 function Find-RepoPython {
@@ -194,10 +206,10 @@ function Run-ImportSync {
 
   $importsPath = Join-Path $RepoDir $ImportsRel
   if (-not (Test-Path -LiteralPath $importsPath)) {
-    Throw-Error "$RepoName: missing $ImportsRel"
+    Throw-Error "${RepoName}: missing $ImportsRel"
   }
 
-  Write-Log "$RepoName: sync imports ($ImportsRel)"
+  Write-Log "${RepoName}: sync imports ($ImportsRel)"
   Invoke-Run -FilePath $PythonExec -Args @($ImportsRel) -WorkingDirectory $RepoDir
 }
 

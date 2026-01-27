@@ -85,7 +85,6 @@ ensure_repo_ready() {
   git -C "$repo_dir" remote get-url "$GIT_REMOTE" >/dev/null 2>&1 || die "$repo_name: missing git remote '$GIT_REMOTE'"
 
   git -C "$repo_dir" symbolic-ref -q HEAD >/dev/null 2>&1 || die "$repo_name: detached HEAD (check out a branch first)"
-  git -C "$repo_dir" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 || die "$repo_name: no upstream configured for current branch"
 
   if git_path_exists "$repo_dir" rebase-apply || \
     git_path_exists "$repo_dir" rebase-merge || \
@@ -108,14 +107,28 @@ sync_repo() {
   local repo_dir="$1"
   local repo_name="$2"
 
+  local branch upstream upstream_remote
+  branch="$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)" || die "$repo_name: failed to determine current branch"
+  [[ "$branch" != "HEAD" ]] || die "$repo_name: detached HEAD (check out a branch first)"
+  upstream="$(git -C "$repo_dir" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+  upstream_remote="${upstream%%/*}"
+
   log "$repo_name: fetch"
   run git -C "$repo_dir" fetch "$GIT_REMOTE" --prune
 
   log "$repo_name: pull (--ff-only)"
-  run git -C "$repo_dir" pull --ff-only
+  if [[ -n "$upstream" && "$upstream_remote" == "$GIT_REMOTE" ]]; then
+    run git -C "$repo_dir" pull --ff-only
+  else
+    run git -C "$repo_dir" pull --ff-only "$GIT_REMOTE" "$branch"
+  fi
 
   log "$repo_name: push"
-  run git -C "$repo_dir" push "$GIT_REMOTE"
+  if [[ -n "$upstream" && "$upstream_remote" == "$GIT_REMOTE" ]]; then
+    run git -C "$repo_dir" push
+  else
+    run git -C "$repo_dir" push "$GIT_REMOTE" "HEAD:$branch"
+  fi
 }
 
 find_repo_python() {

@@ -100,6 +100,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Enable decryption of SecureString parameters",
     )
+    parser.add_argument(
+        "--transpose",
+        dest="transpose",
+        action="store_true",
+        help="Transpose the output table (envs as rows)",
+    )
     return parser.parse_args()
 
 
@@ -180,13 +186,22 @@ def main() -> int:
     for env in envs:
         all_keys.update(data[env].keys())
 
-    headers = ["key"] + envs
-    rows = []
-    for key in sorted(all_keys):
-        row = [key]
+    if args.transpose:
+        headers = ["env"] + sorted(all_keys)
+        rows = []
         for env in envs:
-            row.append(data[env].get(key, ""))
-        rows.append(row)
+            row = [env]
+            for key in sorted(all_keys):
+                row.append(data[env].get(key, ""))
+            rows.append(row)
+    else:
+        headers = ["key"] + envs
+        rows = []
+        for key in sorted(all_keys):
+            row = [key]
+            for env in envs:
+                row.append(data[env].get(key, ""))
+            rows.append(row)
 
     print(tabulate(rows, headers=headers, tablefmt="github"))
     return 0

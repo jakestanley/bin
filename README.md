@@ -9,3 +9,13 @@
 
 - Create `work-vpn/.env` by copying `work-vpn/.env.example` and filling in your values.
 - Run `work-vpn` after installing (or run `work-vpn/work-vpn.sh` directly).
+
+## homelab-sync
+
+- Create `homelab-sync/.env` by copying `homelab-sync/.env.example` and filling in your values.
+- Run `homelab-sync` after installing (or run `homelab-sync/homelab-sync.sh` directly).
+
+## Windows install
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1 -Uninstall`

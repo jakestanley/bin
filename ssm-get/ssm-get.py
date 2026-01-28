@@ -120,11 +120,17 @@ def main() -> int:
         return 2
 
     services = config.get("services")
-    if not isinstance(services, dict) or args.service not in services:
-        print(f"Unknown service: {args.service}", file=sys.stderr)
+    if not isinstance(services, dict):
+        print("Missing services block in config", file=sys.stderr)
         return 2
 
-    service_cfg = services[args.service]
+    service_cfg = services.get(args.service)
+    inferred = False
+    if service_cfg is None:
+        inferred = True
+        inferred_group = "apis" if "api" in args.service else "services"
+        service_cfg = {"group": inferred_group}
+
     group_name = service_cfg.get("group")
     if not group_name:
         print(f"Service '{args.service}' is missing 'group'", file=sys.stderr)
@@ -142,8 +148,16 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 2
 
-    data: dict[str, dict[str, str]] = {env: {} for env in envs}
     prefixes = get_prefixes(args.service, service_cfg)
+    if inferred:
+        inferred_prefixes = ", ".join(prefixes)
+        print(
+            f"Warning: '{args.service}' not found in config; inferring group='{group_name}' "
+            f"and prefixes=[{inferred_prefixes}]",
+            file=sys.stderr,
+        )
+
+    data: dict[str, dict[str, str]] = {env: {} for env in envs}
 
     for env in envs:
         account_type = "prod" if env == "prod" else "nonprod"

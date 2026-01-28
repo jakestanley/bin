@@ -60,12 +60,15 @@ def get_prefixes(service_name: str, service_cfg: dict) -> list[str]:
 
 
 def fetch_parameters(client, base_path: str, with_decryption: bool) -> list[dict]:
-    resp = client.get_parameters_by_path(
+    paginator = client.get_paginator("get_parameters_by_path")
+    params: list[dict] = []
+    for page in paginator.paginate(
         Path=base_path,
         Recursive=True,
         WithDecryption=with_decryption,
-    )
-    return resp.get("Parameters", [])
+    ):
+        params.extend(page.get("Parameters", []))
+    return params
 
 
 def build_env_data(parameters: list[dict], base_path: str, with_decryption: bool) -> dict:

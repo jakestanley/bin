@@ -19,6 +19,7 @@
 
 - Create `ssm-get/ssm-get.yaml` by copying `ssm-get/ssm-get.yaml.example` and filling in your values.
 - Run `ssm-get SERVICE_NAME [--env dev|sit|preprod|prod] [--with-decryption]`.
+- Use `--html` to write an HTML table to `ssm-get/temp.html` and open it in the default browser (use `--no-open` to skip auto-opening).
 
 ## Windows install
 

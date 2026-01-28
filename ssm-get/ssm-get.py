@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import html
 import sys
+import webbrowser
 from pathlib import Path
 
 import boto3
@@ -109,6 +111,18 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Transpose the output table (envs as rows)",
     )
+    parser.add_argument(
+        "--html",
+        dest="html",
+        action="store_true",
+        help="Render output as a basic HTML table",
+    )
+    parser.add_argument(
+        "--no-open",
+        dest="no_open",
+        action="store_true",
+        help="Do not open the HTML output in the default browser",
+    )
     return parser.parse_args()
 
 
@@ -201,10 +215,6 @@ def main() -> int:
 
         data[env] = env_data
 
-    for env in envs:
-        resolved = resolved_paths.get(env, "none")
-        print(f"{env}: {resolved}")
-
     all_keys: set[str] = set()
     for env in envs:
         all_keys.update(data[env].keys())
@@ -226,7 +236,53 @@ def main() -> int:
                 row.append(data[env].get(key, ""))
             rows.append(row)
 
-    print(tabulate(rows, headers=headers, tablefmt="github"))
+    if args.html:
+        html_path = Path(__file__).resolve().parent / "temp.html"
+        lines: list[str] = []
+        lines.append("<!doctype html>")
+        lines.append("<meta charset=\"utf-8\">")
+        lines.append("<title>ssm-get</title>")
+        lines.append("<style>")
+        lines.append("body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; }")
+        lines.append("table { border-collapse: collapse; }")
+        lines.append("th, td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; }")
+        lines.append("thead th { position: sticky; top: 0; background: #f2f2f2; }")
+        lines.append("</style>")
+        lines.append("<h3>Resolved paths</h3>")
+        lines.append("<ul>")
+        for env in envs:
+            resolved = resolved_paths.get(env, "none")
+            lines.append(
+                f"<li><strong>{html.escape(env)}</strong>: {html.escape(resolved)}</li>"
+            )
+        lines.append("</ul>")
+        lines.append("<table>")
+        lines.append("  <thead>")
+        lines.append("    <tr>")
+        for header in headers:
+            lines.append(f"      <th>{html.escape(str(header))}</th>")
+        lines.append("    </tr>")
+        lines.append("  </thead>")
+        lines.append("  <tbody>")
+        for row in rows:
+            lines.append("    <tr>")
+            for cell in row:
+                lines.append(f"      <td>{html.escape(str(cell))}</td>")
+            lines.append("    </tr>")
+        lines.append("  </tbody>")
+        lines.append("</table>")
+        html_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        if not args.no_open:
+            try:
+                webbrowser.open(html_path.as_uri())
+            except Exception:
+                pass
+        print(f"Wrote HTML output to {html_path}")
+    else:
+        for env in envs:
+            resolved = resolved_paths.get(env, "none")
+            print(f"{env}: {resolved}")
+        print(tabulate(rows, headers=headers, tablefmt="github"))
     return 0
 
 

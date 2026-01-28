@@ -158,6 +158,7 @@ def main() -> int:
         )
 
     data: dict[str, dict[str, str]] = {env: {} for env in envs}
+    resolved_paths: dict[str, str] = {}
 
     for env in envs:
         account_type = "prod" if env == "prod" else "nonprod"
@@ -189,12 +190,17 @@ def main() -> int:
 
                 if params:
                     env_data = build_env_data(params, base_path, args.with_decryption)
+                    resolved_paths[env] = base_path
                     found = True
                     break
             if found:
                 break
 
         data[env] = env_data
+
+    for env in envs:
+        resolved = resolved_paths.get(env, "none")
+        print(f"{env}: {resolved}")
 
     all_keys: set[str] = set()
     for env in envs:

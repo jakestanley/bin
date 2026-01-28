@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import textwrap
 from pathlib import Path
 
 import boto3
@@ -11,6 +12,7 @@ from tabulate import tabulate
 VALID_ENVS = ["dev", "sit", "preprod", "prod"]
 NONPROD_ENVS = {"dev", "sit", "preprod"}
 REDACTED = "REDACTED"
+DEFAULT_MAX_COL_WIDTH = 20
 
 
 class ConfigError(Exception):
@@ -108,6 +110,12 @@ def parse_args() -> argparse.Namespace:
         dest="transpose",
         action="store_true",
         help="Transpose the output table (envs as rows)",
+    )
+    parser.add_argument(
+        "--no-wrap",
+        dest="no_wrap",
+        action="store_true",
+        help="Disable column wrapping",
     )
     return parser.parse_args()
 
@@ -209,6 +217,21 @@ def main() -> int:
     for env in envs:
         all_keys.update(data[env].keys())
 
+    def wrap_cell(value: str) -> str:
+        if args.no_wrap or not value:
+            return value
+        if len(value) <= DEFAULT_MAX_COL_WIDTH:
+            return value
+        return textwrap.fill(
+            value,
+            width=DEFAULT_MAX_COL_WIDTH,
+            break_long_words=True,
+            break_on_hyphens=False,
+        )
+
+    def wrap_row(row: list[str]) -> list[str]:
+        return [wrap_cell(str(cell)) for cell in row]
+
     if args.transpose:
         headers = ["env"] + sorted(all_keys)
         rows = []
@@ -216,7 +239,7 @@ def main() -> int:
             row = [env]
             for key in sorted(all_keys):
                 row.append(data[env].get(key, ""))
-            rows.append(row)
+            rows.append(wrap_row(row))
     else:
         headers = ["key"] + envs
         rows = []
@@ -224,7 +247,7 @@ def main() -> int:
             row = [key]
             for env in envs:
                 row.append(data[env].get(key, ""))
-            rows.append(row)
+            rows.append(wrap_row(row))
 
     print(tabulate(rows, headers=headers, tablefmt="github"))
     return 0

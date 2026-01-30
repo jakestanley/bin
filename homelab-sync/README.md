@@ -25,3 +25,5 @@ Keeps core homelab repositories in sync on a machine by:
 
 - `git pull --ff-only` intentionally fails on divergence; resolve manually (rebase/merge) and rerun.
 - If you want a different Python on Windows/macOS, set `HOMELAB_SYNC_PYTHON` in `homelab-sync/.env`.
+- If Git reports "detected dubious ownership" for a repo, add it to your global safe list:
+  - `git config --global --add safe.directory C:/path/to/repo`

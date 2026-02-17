@@ -1,10 +1,14 @@
 .env
 *.zip
-ssm-get/.venv/
-ssm-get/ssm-get.yaml
+*.yaml$
+.venv/
 
 # Ignore all resolver configs by default
 work-vpn/config/macos/resolver/*
 
 # …but keep example templates
 !work-vpn/config/macos/resolver/*.example
+
+# Ignore files that may contain sensitive information
+*.html
+*.jsonl

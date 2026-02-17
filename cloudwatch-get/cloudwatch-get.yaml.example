@@ -1,0 +1,8 @@
+aws:
+  profile_groups:
+    services:
+      nonprod: es-nonprod
+      prod: es-prod
+    apis:
+      nonprod: apis-nonprod
+      prod: apis-prod

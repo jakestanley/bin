@@ -67,6 +67,19 @@ All executable scripts MUST:
 
 Secrets MUST NEVER be committed.
 
+### AWS interface script configuration
+
+For AWS query tools (for example `ssm-get` and `cloudwatch-get`):
+
+- Keep local runtime config in a script-local `*.yaml` file that is gitignored.
+- Commit a matching `*.yaml.example` with placeholder values only.
+- Reuse the same `aws.profile_groups` shape where possible:
+  - `<group>.nonprod`
+  - `<group>.prod`
+- Prefer shared conventions for region keys:
+  - `aws.default_region` for a global default
+  - `aws.regions.<group>` for per-group overrides
+
 ---
 
 ## System and Network Safety

@@ -21,6 +21,12 @@
 - Run `ssm-get SERVICE_NAME [--env dev|sit|preprod|prod] [--with-decryption]`.
 - Use `--html` to write an HTML table to `ssm-get/temp.html` and open it in the default browser (use `--no-open` to skip auto-opening).
 
+## cloudwatch-get
+
+- Create `cloudwatch-get/cloudwatch-get.yaml` by copying `cloudwatch-get/cloudwatch-get.yaml.example` and filling in your values.
+- Run `cloudwatch-get BASE_NAME --env ENV [--from YYYY-MM-DD|YYYY-MM-DDTHH:MM:SS] [--to YYYY-MM-DD|YYYY-MM-DDTHH:MM:SS] [--out-dir DIR] [--profile PROFILE] [--region REGION]`.
+- Log group resolution matches names that end with `<base>-<env>` (for example `my-cool-api-prod` or `some-prefix-my-cool-api-prod`).
+
 ## Windows install
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1`

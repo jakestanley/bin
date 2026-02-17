@@ -14,6 +14,7 @@ from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, 
 
 INPUT_DATE_FORMAT = "%Y-%m-%d"
 INPUT_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
+INPUT_TIME_FORMAT = "%H:%M"
 OUTPUT_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
 OUTPUT_WINDOW_FORMAT = "%Y%m%dT%H%M%S"
 DEFAULT_WINDOW_HOURS = 12
@@ -59,6 +60,7 @@ def parse_local_datetime(raw_value: str) -> datetime:
     value = raw_value.strip()
     if not value:
         raise ConfigError("Datetime value cannot be empty")
+    now_local = datetime.now()
     for fmt in (INPUT_DATETIME_FORMAT, INPUT_DATE_FORMAT):
         try:
             parsed = datetime.strptime(value, fmt)
@@ -67,8 +69,20 @@ def parse_local_datetime(raw_value: str) -> datetime:
             return parsed
         except ValueError:
             continue
+    try:
+        parsed_time = datetime.strptime(value, INPUT_TIME_FORMAT)
+        return datetime(
+            year=now_local.year,
+            month=now_local.month,
+            day=now_local.day,
+            hour=parsed_time.hour,
+            minute=parsed_time.minute,
+            second=0,
+        )
+    except ValueError:
+        pass
     raise ConfigError(
-        f"Invalid datetime: {raw_value!r}. Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS"
+        f"Invalid datetime: {raw_value!r}. Use HH:MM, YYYY-MM-DD, or YYYY-MM-DDTHH:MM:SS"
     )
 
 

@@ -252,6 +252,13 @@ def unique_output_path(
     return out_dir / f"{candidate}.txt"
 
 
+def build_run_output_dir(out_dir: Path, log_group_name: str, from_dt: datetime, to_dt: datetime) -> Path:
+    safe_group = sanitize_filename_component(log_group_name)
+    from_part = from_dt.strftime(OUTPUT_WINDOW_FORMAT)
+    to_part = to_dt.strftime(OUTPUT_WINDOW_FORMAT)
+    return out_dir / f"{safe_group}_{from_part}-{to_part}"
+
+
 def write_event_files(
     out_dir: Path,
     log_group_name: str,
@@ -259,17 +266,14 @@ def write_event_files(
     to_dt: datetime,
     events_by_stream: dict[str, list[tuple[int, int, str, str]]],
 ) -> list[Path]:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    safe_group = sanitize_filename_component(log_group_name)
-    from_part = from_dt.strftime(OUTPUT_WINDOW_FORMAT)
-    to_part = to_dt.strftime(OUTPUT_WINDOW_FORMAT)
+    run_output_dir = build_run_output_dir(out_dir, log_group_name, from_dt, to_dt)
+    run_output_dir.mkdir(parents=True, exist_ok=True)
     used_stems: set[str] = set()
     written_paths: list[Path] = []
 
     for stream_name in sorted(events_by_stream):
         safe_stream = sanitize_filename_component(stream_name)
-        stem = f"{safe_group}_{from_part}-{to_part}_{safe_stream}"
-        path = unique_output_path(out_dir, stem, used_stems)
+        path = unique_output_path(run_output_dir, safe_stream, used_stems)
         events = sorted(events_by_stream[stream_name], key=lambda item: (item[0], item[1], item[2]))
         with path.open("w", encoding="utf-8", errors="replace", newline="\n") as handle:
             for timestamp, _, _, message in events:
@@ -346,7 +350,10 @@ def main() -> int:
         file=sys.stderr,
     )
     print(f"number of streams: {len(events_by_stream)}", file=sys.stderr)
-    print(f"output directory: {output_dir}", file=sys.stderr)
+    print(
+        f"output directory: {build_run_output_dir(output_dir, resolved_log_group, from_dt, to_dt)}",
+        file=sys.stderr,
+    )
 
     try:
         write_event_files(output_dir, resolved_log_group, from_dt, to_dt, events_by_stream)

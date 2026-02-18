@@ -27,6 +27,11 @@
 - Run `cloudwatch-get BASE_NAME --env ENV [--from YYYY-MM-DD|YYYY-MM-DDTHH:MM:SS] [--to YYYY-MM-DD|YYYY-MM-DDTHH:MM:SS] [--out-dir DIR] [--profile PROFILE] [--region REGION]`.
 - Log group resolution matches names that end with `<base>-<env>` (for example `my-cool-api-prod` or `some-prefix-my-cool-api-prod`).
 
+## alias-here
+
+- Run `alias-here NAME` to append `alias NAME="cd <absolute-current-directory>"` to `~/.zsh_aliases`.
+- The command errors if an alias with the same name already exists.
+
 ## Windows install
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\\install.ps1`

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+usage() {
+  echo "usage: alias-here <alias-name>" >&2
+  exit 1
+}
+
+[[ $# -eq 1 ]] || usage
+
+alias_name="$1"
+[[ -n "${alias_name}" ]] || usage
+
+# Keep alias names predictable and safe for shell parsing.
+if [[ ! "${alias_name}" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]; then
+  die "invalid alias name '${alias_name}'. Use letters, numbers, underscore, and hyphen."
+fi
+
+[[ -n "${HOME:-}" ]] || die "HOME is not set"
+
+alias_file="${HOME}/.zsh_aliases"
+current_dir="$(pwd -P)"
+
+if [[ -f "${alias_file}" ]] && grep -Eq "^[[:space:]]*alias[[:space:]]+${alias_name}=" "${alias_file}"; then
+  die "alias '${alias_name}' already exists in ${alias_file}"
+fi
+
+escaped_dir="${current_dir//\\/\\\\}"
+escaped_dir="${escaped_dir//\"/\\\"}"
+alias_line="alias ${alias_name}=\"cd ${escaped_dir}\""
+
+touch "${alias_file}"
+printf '%s\n' "${alias_line}" >>"${alias_file}"
+echo "added: ${alias_line}"

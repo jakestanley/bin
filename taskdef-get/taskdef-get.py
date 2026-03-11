@@ -66,6 +66,10 @@ def find_ecs_service(client, cluster: str, patterns: list[str], env: str) -> str
             name = arn.split("/")[-1]
             for pattern in patterns:
                 for env_candidate in env_candidates:
+                    # Match pattern anywhere in name, followed by env
+                    if pattern in name and f"-{env_candidate}-" in name:
+                        return name
+                    # Also match if it ends with pattern+env
                     if name.endswith(f"{pattern}{env_candidate}"):
                         return name
     return None

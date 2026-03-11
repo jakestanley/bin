@@ -210,12 +210,8 @@ def main() -> int:
                 print(f"\n{env}: No environment variables found", file=sys.stderr)
                 continue
             
-            if len(envs) > 1:
-                print(f"\n# {env}: {service_name}")
-            for var in env_vars:
-                name = var.get("name", "")
-                value = var.get("value", "")
-                print(f'{name}="{value}";')
+            output = "".join(f'{var.get("name", "")}="{var.get("value", "")}";' for var in env_vars)
+            print(output)
         else:
             print(f"\n{env}: {service_name}")
             print(f"Task Definition: {task_def.get('family')}:{task_def.get('revision')}")

@@ -110,6 +110,12 @@ def parse_args() -> argparse.Namespace:
         dest="cluster",
         help="ECS cluster name (overrides config)",
     )
+    parser.add_argument(
+        "--env-vars",
+        dest="env_vars",
+        action="store_true",
+        help="Output only environment variables in KEY=VALUE format",
+    )
     return parser.parse_args()
 
 
@@ -191,9 +197,29 @@ def main() -> int:
             print(f"\n{env}: Service '{service_name}' has no task definition", file=sys.stderr)
             continue
 
-        print(f"\n{env}: {service_name}")
-        print(f"Task Definition: {task_def.get('family')}:{task_def.get('revision')}")
-        print(json.dumps(task_def, indent=2, default=str))
+        if args.env_vars:
+            # Extract environment variables from container definitions
+            container_defs = task_def.get("containerDefinitions", [])
+            if not container_defs:
+                print(f"\n{env}: No container definitions found", file=sys.stderr)
+                continue
+            
+            # Use first container (or could iterate all)
+            env_vars = container_defs[0].get("environment", [])
+            if not env_vars:
+                print(f"\n{env}: No environment variables found", file=sys.stderr)
+                continue
+            
+            if len(envs) > 1:
+                print(f"\n# {env}: {service_name}")
+            for var in env_vars:
+                name = var.get("name", "")
+                value = var.get("value", "")
+                print(f"{name}={value}")
+        else:
+            print(f"\n{env}: {service_name}")
+            print(f"Task Definition: {task_def.get('family')}:{task_def.get('revision')}")
+            print(json.dumps(task_def, indent=2, default=str))
 
     return 0
 

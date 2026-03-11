@@ -215,7 +215,7 @@ def main() -> int:
             for var in env_vars:
                 name = var.get("name", "")
                 value = var.get("value", "")
-                print(f"{name}={value};")
+                print(f'{name}="{value}";')
         else:
             print(f"\n{env}: {service_name}")
             print(f"Task Definition: {task_def.get('family')}:{task_def.get('revision')}")

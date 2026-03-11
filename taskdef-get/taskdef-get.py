@@ -191,18 +191,6 @@ def main() -> int:
         print(f"Task Definition: {task_def.get('family')}:{task_def.get('revision')}")
         print(json.dumps(task_def, indent=2, default=str))
 
-    return 0f-8")
-        if not args.no_open:
-            try:
-                webbrowser.open(html_path.as_uri())
-            except Exception:
-                pass
-        print(f"Wrote HTML output to {html_path}")
-    else:
-        for env in envs:
-            resolved = resolved_paths.get(env, "none")
-            print(f"{env}: {resolved}")
-        print(tabulate(rows, headers=headers, tablefmt="github"))
     return 0
 
 

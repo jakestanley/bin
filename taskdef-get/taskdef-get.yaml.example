@@ -1,0 +1,16 @@
+  aws:
+    profile_groups:
+      services:
+        nonprod: es-nonprod
+        prod: es-prod
+      apis:
+        nonprod: apis-nonprod
+        prod: apis-prod
+
+  services:
+    my-service:
+      group: services
+      cluster: default
+      # match_service_patterns:
+      #   - my-service-
+

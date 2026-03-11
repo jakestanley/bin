@@ -27,6 +27,13 @@
 - Run `cloudwatch-get BASE_NAME --env ENV [--from YYYY-MM-DD|YYYY-MM-DDTHH:MM:SS] [--to YYYY-MM-DD|YYYY-MM-DDTHH:MM:SS] [--out-dir DIR] [--profile PROFILE] [--region REGION]`.
 - Log group resolution matches names that end with `<base>-<env>` (for example `my-cool-api-prod` or `some-prefix-my-cool-api-prod`).
 
+## taskdef-get
+
+- Create `taskdef-get/taskdef-get.yaml` by copying `taskdef-get/taskdef-get.yaml.example` and filling in your values.
+- Run `taskdef-get SERVICE_NAME [--env dev|sit|preprod|prod] [--cluster CLUSTER_NAME]`.
+- Outputs the active task definition JSON for the matched ECS service.
+
+
 ## alias-here
 
 - Run `alias-here NAME` to append `alias NAME="cd <absolute-current-directory>"` to `~/.zsh_aliases`.

@@ -2,6 +2,7 @@
 *.zip
 *.yaml
 .venv/
+__pycache__
 
 # Ignore all resolver configs by default
 work-vpn/config/macos/resolver/*

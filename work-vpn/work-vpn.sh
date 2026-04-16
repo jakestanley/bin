@@ -139,11 +139,9 @@ connect_vpn() {
 
   # IMPORTANT:
   # - The VPN endpoint/server goes to openconnect-sso via -s
-  # - Anything after the first `--` is passed to openconnect (via openconnect-sso)
-  # - openconnect-sso's argument parser drops the first openconnect arg after `--`,
-  #   so we insert a dummy `--` sentinel before the real flags
+  # - Anything after `--` is passed to openconnect (via openconnect-sso)
   # - Do NOT pass the server again after `--` (that causes “Too many arguments”)
-  cmd=(sudo openconnect-sso -s "$WORK_VPN_ENDPOINT_URL" -- -- --script "$WORK_VPN_VPNC_SCRIPT_NO_DNS")
+  cmd=(sudo openconnect-sso -s "$WORK_VPN_ENDPOINT_URL" -- --script "$WORK_VPN_VPNC_SCRIPT_NO_DNS")
 
   if (( DRY_RUN )); then
     log "DRY RUN - would exec:"

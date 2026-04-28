@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import curses
 import re
 import sys
 import time
@@ -181,6 +182,40 @@ def auth_error(profile: str, exc: Exception) -> None:
     raise SystemExit(3) from exc
 
 
+def pick_from_list(prompt: str, options: list[str]) -> str:
+    selected = [0]
+
+    def _menu(stdscr: curses.window) -> None:
+        curses.curs_set(0)
+        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+        while True:
+            stdscr.clear()
+            h, w = stdscr.getmaxyx()
+            stdscr.addstr(0, 0, prompt[:w - 1])
+            for i, option in enumerate(options):
+                y = i + 2
+                if y >= h:
+                    break
+                text = option[:w - 1]
+                if i == selected[0]:
+                    stdscr.attron(curses.color_pair(1))
+                    stdscr.addstr(y, 0, text)
+                    stdscr.attroff(curses.color_pair(1))
+                else:
+                    stdscr.addstr(y, 0, text)
+            stdscr.refresh()
+            key = stdscr.getch()
+            if key == curses.KEY_UP and selected[0] > 0:
+                selected[0] -= 1
+            elif key == curses.KEY_DOWN and selected[0] < len(options) - 1:
+                selected[0] += 1
+            elif key in (curses.KEY_ENTER, ord("\n"), ord("\r")):
+                break
+
+    curses.wrapper(_menu)
+    return options[selected[0]]
+
+
 def resolve_log_group_name(client, base_name: str, env_name: str) -> str:
     suffix = f"{base_name}-{env_name}"
     matches: list[str] = []
@@ -194,9 +229,9 @@ def resolve_log_group_name(client, base_name: str, env_name: str) -> str:
     if not matches:
         raise ConfigError(f"No log groups found ending with '{suffix}'. Hint: check the base name and --env.")
     if len(matches) > 1:
-        candidates = "\n".join(f"- {name}" for name in sorted(matches))
-        raise ConfigError(
-            f"Multiple log groups match suffix '{suffix}'. Please narrow the base name.\n{candidates}"
+        return pick_from_list(
+            f"Multiple log groups match '{suffix}'. Use arrows to select, Enter to confirm:",
+            sorted(matches),
         )
     return matches[0]
 

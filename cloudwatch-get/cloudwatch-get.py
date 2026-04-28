@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import curses
+import json
 import re
 import sys
 import time
@@ -19,6 +20,7 @@ INPUT_TIME_FORMAT = "%H:%M"
 OUTPUT_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
 OUTPUT_WINDOW_FORMAT = "%Y%m%dT%H%M%S"
 DEFAULT_WINDOW_HOURS = 12
+CACHE_TTL_SECONDS = 3600
 CONFIG_RELATIVE_CANDIDATES = [
     Path("cloudwatch-get.yaml"),
     Path("../ssm-get/ssm-get.yaml"),
@@ -182,6 +184,27 @@ def auth_error(profile: str, exc: Exception) -> None:
     raise SystemExit(3) from exc
 
 
+def _cache_path() -> Path:
+    return Path.home() / ".cache" / "cloudwatch-get" / "log-groups.json"
+
+
+def _load_cache() -> dict:
+    path = _cache_path()
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_cache(cache: dict) -> None:
+    path = _cache_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+
+
 def pick_from_list(prompt: str, options: list[str]) -> str:
     selected = [0]
 
@@ -216,8 +239,21 @@ def pick_from_list(prompt: str, options: list[str]) -> str:
     return options[selected[0]]
 
 
-def resolve_log_group_name(client, base_name: str, env_name: str) -> str:
+def resolve_log_group_name(client, base_name: str, env_name: str, *, profile: str, region: str) -> str:
     suffix = f"{base_name}-{env_name}"
+    cache_key = f"{profile}:{region}:{suffix}"
+    now = time.time()
+
+    cache = _load_cache()
+    entry = cache.get(cache_key)
+    if isinstance(entry, dict):
+        cached_name = entry.get("log_group_name")
+        cached_at = entry.get("cached_at", 0)
+        if isinstance(cached_name, str) and (now - cached_at) < CACHE_TTL_SECONDS:
+            remaining = int(CACHE_TTL_SECONDS - (now - cached_at))
+            print(f"using cached log group: {cached_name} (expires in {remaining}s)", file=sys.stderr)
+            return cached_name
+
     matches: list[str] = []
     paginator = client.get_paginator("describe_log_groups")
     for page in paginator.paginate():
@@ -229,11 +265,16 @@ def resolve_log_group_name(client, base_name: str, env_name: str) -> str:
     if not matches:
         raise ConfigError(f"No log groups found ending with '{suffix}'. Hint: check the base name and --env.")
     if len(matches) > 1:
-        return pick_from_list(
+        resolved = pick_from_list(
             f"Multiple log groups match '{suffix}'. Use arrows to select, Enter to confirm:",
             sorted(matches),
         )
-    return matches[0]
+    else:
+        resolved = matches[0]
+
+    cache[cache_key] = {"log_group_name": resolved, "cached_at": now}
+    _save_cache(cache)
+    return resolved
 
 
 def sanitize_filename_component(value: str) -> str:
@@ -385,7 +426,7 @@ def main() -> int:
     output_dir = Path(args.out_dir).expanduser().resolve()
 
     try:
-        resolved_log_group = resolve_log_group_name(client, base_name, env_name)
+        resolved_log_group = resolve_log_group_name(client, base_name, env_name, profile=profile, region=region)
         events_by_stream = fetch_events_by_stream(client, resolved_log_group, start_ms, end_ms)
     except (NoCredentialsError, ProfileNotFound, BotoCoreError, ClientError) as exc:
         auth_error(profile, exc)

@@ -33,36 +33,32 @@ def load_config(path: Path) -> dict:
     return data
 
 
-def get_profile(profile_groups: dict, group_name: str, account_type: str) -> str:
-    try:
-        group = profile_groups[group_name]
-    except KeyError as exc:
-        raise ConfigError(f"Unknown profile group: {group_name}") from exc
-    try:
-        return group[account_type]
-    except KeyError as exc:
-        raise ConfigError(f"Missing profile for {group_name}.{account_type}") from exc
-
-
 def parse_image_uri(uri: str) -> dict:
-    """Split a fully qualified ECR image URI into its parts."""
+    """Split an image reference into its parts.
+
+    Accepts a fully qualified ECR URI, or <repository>:<tag> when the registry
+    and region come from config.
+    """
     value = uri.strip()
     if "://" in value:
         value = value.split("://", 1)[1]
 
-    if "/" not in value:
-        raise ImageUriError(
-            f"Not a fully qualified ECR image URI: {uri}\n"
-            "Expected <account>.dkr.ecr.<region>.amazonaws.com/<repository>:<tag>"
-        )
+    registry_id = None
+    region = None
 
-    host, remainder = value.split("/", 1)
-    match = ECR_HOST_RE.match(host)
-    if not match:
+    head, _, rest = value.partition("/")
+    match = ECR_HOST_RE.match(head)
+    if match:
+        registry_id = match.group("registry_id")
+        region = match.group("region")
+        remainder = rest
+    elif "." in head and "/" in value:
         raise ImageUriError(
-            f"Not an ECR registry host: {host}\n"
+            f"Not an ECR registry host: {head}\n"
             "Expected <account>.dkr.ecr.<region>.amazonaws.com/<repository>:<tag>"
         )
+    else:
+        remainder = value
 
     tag = None
     digest = None
@@ -71,36 +67,20 @@ def parse_image_uri(uri: str) -> dict:
     elif ":" in remainder.rsplit("/", 1)[-1]:
         repository, tag = remainder.rsplit(":", 1)
     else:
-        raise ImageUriError(f"Image URI has no tag or digest: {uri}")
+        raise ImageUriError(f"Image reference has no tag or digest: {uri}")
 
     if not repository:
-        raise ImageUriError(f"Image URI has no repository: {uri}")
-    if tag == "" or digest == "":
-        raise ImageUriError(f"Image URI has an empty tag or digest: {uri}")
+        raise ImageUriError(f"Image reference has no repository: {uri}")
+    if not tag and not digest:
+        raise ImageUriError(f"Image reference has an empty tag or digest: {uri}")
 
     return {
-        "registry_id": match.group("registry_id"),
-        "region": match.group("region"),
+        "registry_id": registry_id,
+        "region": region,
         "repository": repository,
         "tag": tag,
         "digest": digest,
     }
-
-
-def check_against_config(image: dict, ecr_cfg: dict) -> None:
-    configured_repo = ecr_cfg.get("repository")
-    if configured_repo and image["repository"] != configured_repo:
-        raise ConfigError(
-            f"Image repository '{image['repository']}' does not match the configured "
-            f"repository '{configured_repo}'"
-        )
-
-    configured_registry = ecr_cfg.get("registry_id")
-    if configured_registry and image["registry_id"] != str(configured_registry):
-        raise ConfigError(
-            f"Image registry '{image['registry_id']}' does not match the configured "
-            f"registry '{configured_registry}'"
-        )
 
 
 def format_size(size_bytes: int | None) -> str:
@@ -121,15 +101,21 @@ def auth_error(profile: str, exc: Exception) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Check whether a fully qualified ECR image URI exists in the configured repository."
+        description="Check whether an ECR image tag exists."
     )
     parser.add_argument(
         "image",
-        help="Fully qualified image URI, for example "
-        "000000000000.dkr.ecr.eu-west-2.amazonaws.com/my-repo:1.2.3",
+        help="Image reference, for example "
+        "000000000000.dkr.ecr.eu-west-1.amazonaws.com/my-group/my-app:1.2.3 "
+        "(or my-group/my-app:1.2.3 to use the configured registry)",
     )
     parser.add_argument("--profile", dest="profile", help="AWS profile (overrides config)")
-    parser.add_argument("--region", dest="region", help="AWS region (overrides the image URI)")
+    parser.add_argument("--region", dest="region", help="AWS region (overrides the image URI and config)")
+    parser.add_argument(
+        "--registry-id",
+        dest="registry_id",
+        help="AWS account ID of the registry (overrides the image URI and config)",
+    )
     parser.add_argument(
         "--quiet",
         dest="quiet",
@@ -150,33 +136,30 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 2
 
-    ecr_cfg = config.get("ecr")
+    aws_cfg = config.get("aws", {})
+    if not isinstance(aws_cfg, dict):
+        print("Invalid aws block in config", file=sys.stderr)
+        return 2
+    ecr_cfg = config.get("ecr", {})
     if not isinstance(ecr_cfg, dict):
-        print("Missing ecr block in config", file=sys.stderr)
+        print("Invalid ecr block in config", file=sys.stderr)
         return 2
 
-    try:
-        check_against_config(image, ecr_cfg)
-    except ConfigError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-
-    profile = args.profile or ecr_cfg.get("profile")
+    profile = args.profile or aws_cfg.get("profile")
     if not profile:
-        # Fall back to the shared aws.profile_groups shape used by the other AWS tools
-        aws_cfg = config.get("aws", {})
-        profile_groups = aws_cfg.get("profile_groups")
-        group_name = ecr_cfg.get("group")
-        if not isinstance(profile_groups, dict) or not group_name:
-            print("Missing ecr.profile (or ecr.group + aws.profile_groups) in config", file=sys.stderr)
-            return 2
-        try:
-            profile = get_profile(profile_groups, group_name, ecr_cfg.get("account_type", "nonprod"))
-        except ConfigError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
+        print("Missing aws.profile in config", file=sys.stderr)
+        return 2
 
-    region = args.region or image["region"]
+    # The image URI wins where it carries the value; config fills the gaps
+    region = args.region or image["region"] or aws_cfg.get("region")
+    if not region:
+        print("Missing aws.region in config and no region in the image URI", file=sys.stderr)
+        return 2
+
+    registry_id = args.registry_id or image["registry_id"] or ecr_cfg.get("registry_id")
+    if not registry_id:
+        print("Missing ecr.registry_id in config and no registry in the image URI", file=sys.stderr)
+        return 2
 
     try:
         session = boto3.Session(profile_name=profile, region_name=region)
@@ -188,7 +171,7 @@ def main() -> int:
 
     try:
         response = client.describe_images(
-            registryId=image["registry_id"],
+            registryId=str(registry_id),
             repositoryName=image["repository"],
             imageIds=[image_id],
         )
@@ -199,7 +182,7 @@ def main() -> int:
     except client.exceptions.RepositoryNotFoundException:
         print(
             f"Repository '{image['repository']}' not found in registry "
-            f"{image['registry_id']} ({region})",
+            f"{registry_id} ({region})",
             file=sys.stderr,
         )
         return 2

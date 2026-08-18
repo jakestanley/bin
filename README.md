@@ -36,9 +36,9 @@
 ## ecr-get
 
 - Create `ecr-get/ecr-get.yaml` by copying `ecr-get/ecr-get.yaml.example` and filling in your values.
-- Run `ecr-get IMAGE_URI [--profile PROFILE] [--region REGION] [--quiet]`, where `IMAGE_URI` is fully qualified (for example `000000000000.dkr.ecr.eu-west-2.amazonaws.com/my-repo:1.2.3`). A digest (`@sha256:...`) works in place of a tag.
-- Reports whether the image is present in the configured repository. Exit codes: `0` present, `1` absent, `2` config or input error, `3` AWS auth failure.
-- The pasted URI must match the configured `ecr.repository` and `ecr.registry_id`; a mismatch is refused rather than queried.
+- Run `ecr-get IMAGE [--profile PROFILE] [--region REGION] [--registry-id ID] [--quiet]`, where `IMAGE` is any fully qualified ECR URI (for example `000000000000.dkr.ecr.eu-west-1.amazonaws.com/my-group/my-app:1.2.3`). A digest (`@sha256:...`) works in place of a tag.
+- `REPOSITORY:TAG` on its own also works; the registry and region then come from config.
+- Reports whether the image exists. Exit codes: `0` exists, `1` does not exist, `2` config or input error, `3` AWS auth failure.
 
 
 ## alias-here

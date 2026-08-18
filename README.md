@@ -33,6 +33,13 @@
 - Run `taskdef-get SERVICE_NAME [--env dev|sit|preprod|prod] [--cluster CLUSTER_NAME]`.
 - Outputs the active task definition JSON for the matched ECS service.
 
+## ecr-get
+
+- Create `ecr-get/ecr-get.yaml` by copying `ecr-get/ecr-get.yaml.example` and filling in your values.
+- Run `ecr-get IMAGE_URI [--profile PROFILE] [--region REGION] [--quiet]`, where `IMAGE_URI` is fully qualified (for example `000000000000.dkr.ecr.eu-west-2.amazonaws.com/my-repo:1.2.3`). A digest (`@sha256:...`) works in place of a tag.
+- Reports whether the image is present in the configured repository. Exit codes: `0` present, `1` absent, `2` config or input error, `3` AWS auth failure.
+- The pasted URI must match the configured `ecr.repository` and `ecr.registry_id`; a mismatch is refused rather than queried.
+
 
 ## alias-here
 

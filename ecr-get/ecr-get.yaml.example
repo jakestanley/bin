@@ -1,0 +1,16 @@
+  aws:
+    default_region: eu-west-1
+
+  ecr:
+    # AWS profile used to query the repository
+    profile: shared-services
+
+    # The single repository this tool checks against.
+    # A pasted image URI must match these or the lookup is refused.
+    registry_id: "000000000000"
+    repository: my-group/my-service-app
+
+    # Alternative to ecr.profile, matching the other AWS tools in this repo:
+    # group: ecr
+    # account_type: nonprod
+    # (requires aws.profile_groups.<group>.<account_type>)

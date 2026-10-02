@@ -141,7 +141,11 @@ connect_vpn() {
   # - The VPN endpoint/server goes to openconnect-sso via -s
   # - Anything after `--` is passed to openconnect (via openconnect-sso)
   # - Do NOT pass the server again after `--` (that causes “Too many arguments”)
-  cmd=(sudo openconnect-sso -s "$WORK_VPN_ENDPOINT_URL" -- --script "$WORK_VPN_VPNC_SCRIPT_NO_DNS")
+  # - QtWebEngine can't do passkeys; disabling WebAuthn in its Chromium stops
+  #   Entra offering a passkey so it falls back to the authenticator app.
+  #   Passed via `env` because sudo strips the caller's environment.
+  cmd=(sudo env QTWEBENGINE_CHROMIUM_FLAGS="--disable-blink-features=WebAuth"
+    openconnect-sso -s "$WORK_VPN_ENDPOINT_URL" -- --script "$WORK_VPN_VPNC_SCRIPT_NO_DNS")
 
   if (( DRY_RUN )); then
     log "DRY RUN - would exec:"
